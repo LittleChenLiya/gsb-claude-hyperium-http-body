@@ -10,6 +10,7 @@
 
 mod collected;
 pub mod combinators;
+mod consumer;
 mod either;
 mod empty;
 mod error;
@@ -27,6 +28,7 @@ mod util;
 use self::combinators::{BoxBody, MapErr, MapFrame, UnsyncBoxBody};
 
 pub use self::collected::Collected;
+pub use self::consumer::Consumer;
 pub use self::either::Either;
 pub use self::empty::Empty;
 pub use self::error::ErrorBody;
@@ -195,6 +197,19 @@ pub trait BodyExt: http_body::Body {
         Self: Sized,
     {
         combinators::Fuse::new(self)
+    }
+
+    /// Turns this body into a [`Consumer`] that sequentially consumes it.
+    ///
+    /// The returned consumer is the only poller of this body, reports the
+    /// end of the stream or an error exactly once, and can be stopped
+    /// explicitly to get the remaining body back. See [`Consumer`] for more
+    /// information.
+    fn into_consumer(self) -> Consumer<Self>
+    where
+        Self: Sized,
+    {
+        Consumer::new(self)
     }
 
     /// Takes two bodies and creates a new body "chaining" them together.
