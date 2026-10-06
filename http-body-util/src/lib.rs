@@ -27,6 +27,7 @@ mod util;
 use self::combinators::{BoxBody, MapErr, MapFrame, UnsyncBoxBody};
 
 pub use self::collected::Collected;
+pub use self::combinators::{CollectError, CollectErrorKind, Receipt};
 pub use self::either::Either;
 pub use self::empty::Empty;
 pub use self::error::ErrorBody;
@@ -122,6 +123,26 @@ pub trait BodyExt: http_body::Body {
             body: self,
             collected: Some(crate::Collected::default()),
         }
+    }
+
+    /// Turn this body into a [`Receipt`] with strict frame validation.
+    ///
+    /// Unlike [`collect`], this combinator tracks data, trailers, and EOF as
+    /// distinct concerns. It only completes when the underlying body signals
+    /// EOF via [`Body::poll_frame`] returning `None`; `size_hint` is never
+    /// used as a completeness signal.
+    ///
+    /// It rejects duplicate trailers frames and data frames received after a
+    /// trailers frame. On failure, the received byte count is returned but no
+    /// body is delivered.
+    ///
+    /// [`collect`]: BodyExt::collect
+    /// [`Receipt`]: combinators::Receipt
+    fn collect_receipt(self) -> combinators::CollectReceipt<Self>
+    where
+        Self: Sized,
+    {
+        combinators::CollectReceipt::new(self)
     }
 
     /// Add trailers to the body.

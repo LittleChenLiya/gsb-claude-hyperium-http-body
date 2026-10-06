@@ -3,6 +3,7 @@
 mod box_body;
 mod chain;
 mod collect;
+mod collect_receipt;
 mod frame;
 mod fuse;
 mod inspect_err;
@@ -15,6 +16,7 @@ pub use self::{
     box_body::{BoxBody, UnsyncBoxBody},
     chain::Chain,
     collect::Collect,
+    collect_receipt::{CollectError, CollectErrorKind, CollectReceipt, Receipt},
     frame::Frame,
     fuse::Fuse,
     inspect_err::InspectErr,
