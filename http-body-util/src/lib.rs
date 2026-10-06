@@ -11,6 +11,7 @@
 mod collected;
 pub mod combinators;
 mod either;
+mod frame_receipt;
 mod empty;
 mod error;
 mod full;
@@ -30,6 +31,9 @@ pub use self::collected::Collected;
 pub use self::either::Either;
 pub use self::empty::Empty;
 pub use self::error::ErrorBody;
+pub use self::frame_receipt::{
+    CollectFramesError, CollectFramesErrorKind, FrameReceipt, FramesCollected,
+};
 pub use self::full::Full;
 pub use self::future::TryFutureBody;
 pub use self::limited::{LengthLimitError, Limited};
@@ -122,6 +126,57 @@ pub trait BodyExt: http_body::Body {
             body: self,
             collected: Some(crate::Collected::default()),
         }
+    }
+
+    /// Turn this body into a future that collects all frames into a
+    /// [`FramesCollected`], recording an explicit [`FrameReceipt`] for every
+    /// observed event.
+    ///
+    /// Unlike [`BodyExt::collect`], this combinator attributes DATA frames,
+    /// trailers and end-of-stream separately:
+    ///
+    /// - Every DATA frame (including empty ones) is recorded as
+    ///   [`FrameReceipt::Data`]. An empty DATA frame is *not* treated as the
+    ///   end of the body.
+    /// - Trailers are recorded as [`FrameReceipt::Trailers`]. A second
+    ///   trailers frame, or any DATA frame after trailers, is rejected with a
+    ///   [`CollectFramesError`] per the declared strict policy.
+    /// - Only end-of-stream (`Poll::Ready(None)`) completes the collection,
+    ///   recorded as [`FrameReceipt::EndOfStream`]. [`http_body::SizeHint`] is
+    ///   used solely as an allocation estimate and never as a completeness
+    ///   signal, so a wrong hint cannot truncate the body.
+    ///
+    /// On failure the returned [`CollectFramesError`] reports how many bytes
+    /// had been received; the partially collected body is not delivered.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use bytes::Bytes;
+    /// use http_body_util::{BodyExt, FrameReceipt, Full};
+    ///
+    /// # async fn doc() {
+    /// let collected = Full::new(Bytes::from_static(b"hello"))
+    ///     .collect_frames()
+    ///     .await
+    ///     .unwrap();
+    ///
+    /// assert_eq!(
+    ///     collected.receipts(),
+    ///     &[FrameReceipt::Data { len: 5 }, FrameReceipt::EndOfStream],
+    /// );
+    /// assert_eq!(collected.to_bytes(), &b"hello"[..]);
+    /// # }
+    /// ```
+    ///
+    /// [`FramesCollected`]: crate::FramesCollected
+    /// [`FrameReceipt`]: crate::FrameReceipt
+    /// [`CollectFramesError`]: crate::CollectFramesError
+    fn collect_frames(self) -> combinators::CollectFrames<Self>
+    where
+        Self: Sized,
+    {
+        combinators::CollectFrames::new(self)
     }
 
     /// Add trailers to the body.
