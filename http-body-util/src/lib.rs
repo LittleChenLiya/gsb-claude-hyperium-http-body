@@ -70,6 +70,21 @@ pub trait BodyExt: http_body::Body {
         combinators::InspectFrame::new(self, f)
     }
 
+    /// A body that calls a fallible function with a reference to each frame before yielding it.
+    ///
+    /// Frames for which the function returns `Ok(())` are yielded unchanged, including
+    /// trailers. When the function rejects a frame by returning an error, that frame is not
+    /// yielded to the consumer; instead the error is yielded once as the body's error, the
+    /// inner body is dropped, and the body terminates, yielding `None` and a zero
+    /// [`SizeHint`][http_body::SizeHint] from then on.
+    fn try_inspect_frame<F>(self, f: F) -> combinators::TryInspectFrame<Self, F>
+    where
+        Self: Sized,
+        F: FnMut(&http_body::Frame<Self::Data>) -> Result<(), Self::Error>,
+    {
+        combinators::TryInspectFrame::new(self, f)
+    }
+
     /// Maps this body's error value to a different value.
     fn map_err<F, E>(self, f: F) -> MapErr<Self, F>
     where
