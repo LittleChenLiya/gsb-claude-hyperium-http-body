@@ -10,6 +10,7 @@
 
 mod collected;
 pub mod combinators;
+mod content_length;
 mod either;
 mod empty;
 mod error;
@@ -27,6 +28,7 @@ mod util;
 use self::combinators::{BoxBody, MapErr, MapFrame, UnsyncBoxBody};
 
 pub use self::collected::Collected;
+pub use self::content_length::{ContentLength, ContentLengthError};
 pub use self::either::Either;
 pub use self::empty::Empty;
 pub use self::error::ErrorBody;
@@ -110,6 +112,15 @@ pub trait BodyExt: http_body::Body {
         Self: Sized,
     {
         Limited::new(self, limit)
+    }
+
+    /// Turn this body into a [`ContentLength`] body checked against the
+    /// declared content length.
+    fn check_content_length(self, declared: u64) -> ContentLength<Self>
+    where
+        Self: Sized,
+    {
+        ContentLength::new(self, declared)
     }
 
     /// Turn this body into [`Collected`] body which will collect all the DATA frames
