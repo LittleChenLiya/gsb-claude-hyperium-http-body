@@ -9,6 +9,7 @@ mod inspect_err;
 mod inspect_frame;
 mod map_err;
 mod map_frame;
+mod try_inspect_frame;
 mod with_trailers;
 
 pub use self::{
@@ -21,5 +22,6 @@ pub use self::{
     inspect_frame::InspectFrame,
     map_err::MapErr,
     map_frame::MapFrame,
+    try_inspect_frame::TryInspectFrame,
     with_trailers::WithTrailers,
 };
