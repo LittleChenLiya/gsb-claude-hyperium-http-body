@@ -1,3 +1,9 @@
+# Unreleased
+
+- Add `ContentLength` body combinator and `BodyExt::check_content_length()` that verify the
+  body's DATA frame bytes against a declared content length, erroring on over- or under-length
+  bodies while passing trailers through.
+
 # v0.1.5
 
 - Fix docs with new `doc_cfg` rendering.
